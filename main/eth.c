@@ -102,7 +102,6 @@ void ethernet_init(void) {
     gpio_set_direction(PIN_PHY_CLK_EN, GPIO_MODE_OUTPUT);
     gpio_set_level(PIN_PHY_CLK_EN, 1);
 
-
     esp_netif_config_t cfg = ESP_NETIF_DEFAULT_ETH();
     eth_netif = esp_netif_new(&cfg);
 
@@ -114,13 +113,12 @@ void ethernet_init(void) {
     phy_config.autonego_timeout_ms = 2000; 
     phy_config.phy_addr = 0;
     phy_config.reset_gpio_num = 5;
-    
-    
 
-	eth_mac_config_t esp32_emac_config = ETH_MAC_DEFAULT_CONFIG();
-esp32_emac_config.smi_mdc_gpio_num = CONFIG_EXAMPLE_ETH_MDC_GPIO;            // alter the GPIO used for MDC signal
-esp32_emac_config.smi_mdio_gpio_num = CONFIG_EXAMPLE_ETH_MDIO_GPIO;          // alter the GPIO used for MDIO signal
-esp_eth_mac_t *mac = esp_eth_mac_new_esp32(&esp32_emac_config, &mac_config); // create MAC instance
+    eth_esp32_emac_config_t esp32_emac_config = ETH_ESP32_EMAC_DEFAULT_CONFIG();
+    esp32_emac_config.smi_mdc_gpio_num = CONFIG_EXAMPLE_ETH_MDC_GPIO; 
+    esp32_emac_config.smi_mdio_gpio_num = CONFIG_EXAMPLE_ETH_MDIO_GPIO; 
+
+    esp_eth_mac_t *mac = esp_eth_mac_new_esp32(&esp32_emac_config, &mac_config);
 
     esp_eth_phy_t *phy = esp_eth_phy_new_lan87xx(&phy_config);
     esp_eth_config_t config = ETH_DEFAULT_CONFIG(mac, phy);
@@ -133,11 +131,68 @@ esp_eth_mac_t *mac = esp_eth_mac_new_esp32(&esp32_emac_config, &mac_config); // 
 
     ESP_ERROR_CHECK(esp_netif_attach(eth_netif, esp_eth_new_netif_glue(eth_handle)));
     ESP_ERROR_CHECK(esp_eth_start(eth_handle));
-    
 }
+
 
 void app_main()
 {
-	
+    ESP_ERROR_CHECK(esp_netif_init());
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+
+
+    AppConfig.ip.v[0] = 192;
+    AppConfig.ip.v[1] = 168;
+    AppConfig.ip.v[2] = 1;
+    AppConfig.ip.v[3] = 100;
+
+    AppConfig.netmask.v[0] = 255;
+    AppConfig.netmask.v[1] = 255;
+    AppConfig.netmask.v[2] = 255;
+    AppConfig.netmask.v[3] = 0;
+
+    AppConfig.gw.v[0] = 192;
+    AppConfig.gw.v[1] = 168;
+    AppConfig.gw.v[2] = 1;
+    AppConfig.gw.v[3] = 1;
+
+    AppConfig.dns1.v[0] = 8;
+    AppConfig.dns1.v[1] = 8;
+    AppConfig.dns1.v[2] = 8;
+    AppConfig.dns1.v[3] = 8;
+
+    AppConfig.dns2.v[0] = 8;
+    AppConfig.dns2.v[1] = 8;
+    AppConfig.dns2.v[2] = 4;
+    AppConfig.dns2.v[3] = 4;
+
+    AppConfig.dhcp = 0; 
+
+
+    ethernet_init();
+
+
+    if (AppConfig.dhcp == 0) {
+		esp_netif_ip_info_t ip_info;
+		ip_info.ip.addr = htonl((AppConfig.ip.v[0] << 24) | (AppConfig.ip.v[1] << 16) | (AppConfig.ip.v[2] << 8) | AppConfig.ip.v[3]);
+		ip_info.netmask.addr = htonl((AppConfig.netmask.v[0] << 24) | (AppConfig.netmask.v[1] << 16) | (AppConfig.netmask.v[2] << 8) | AppConfig.netmask.v[3]);
+		ip_info.gw.addr = htonl((AppConfig.gw.v[0] << 24) | (AppConfig.gw.v[1] << 16) | (AppConfig.gw.v[2] << 8) | AppConfig.gw.v[3]);
+
+
+        ESP_ERROR_CHECK(esp_netif_dhcpc_stop(eth_netif)); 
+        ESP_ERROR_CHECK(esp_netif_set_ip_info(eth_netif, &ip_info));
+
+        ip_addr_t dns1, dns2;
+        dns1.u_addr.ip4.addr = (AppConfig.dns1.v[0] << 24) | (AppConfig.dns1.v[1] << 16) | (AppConfig.dns1.v[2] << 8) | AppConfig.dns1.v[3];
+        dns2.u_addr.ip4.addr = (AppConfig.dns2.v[0] << 24) | (AppConfig.dns2.v[1] << 16) | (AppConfig.dns2.v[2] << 8) | AppConfig.dns2.v[3];
+
+        dns_setserver(0, &dns1);
+        dns_setserver(1, &dns2);
+    }
+
+
+    while (true) {
+        vTaskDelay(pdMS_TO_TICKS(1000)); 
+    }
 }
+
 
