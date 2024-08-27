@@ -59,10 +59,6 @@ CFG AppConfig;
 
 void get_eth_mac(uint8_t *mac_addr);
 
-static void eth_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
-
-static void got_ip_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
-
 void ethernet_init(void);
 
 void setIPAddressFromString(IP_ADDR *ip, const char *ipStr);
