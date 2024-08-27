@@ -1,3 +1,11 @@
+/*
+ * eth.c
+ *
+ *  Created on: 27 sie 2024
+ *      Author: Dell
+ */
+
+
 
 #include "eth.h"
 
@@ -7,12 +15,23 @@
 
 void get_eth_mac(uint8_t *mac_addr) {
 
-    mac_addr[0] = 0x01;
-    mac_addr[1] = 0x02;
-    mac_addr[2] = 0x03;
-    mac_addr[3] = 0x04;
-    mac_addr[4] = 0x05;
-    mac_addr[5] = 0x06;
+    const char *mac_str = ETH_AP_MAC_ADDRESS;
+    
+ 
+    char *token;
+    char *mac_copy = strdup(mac_str); 
+    
+
+    token = strtok(mac_copy, ":");
+    int index = 0;
+
+    while (token != NULL && index < 6) {
+      
+        mac_addr[index++] = (uint8_t) strtol(token, NULL, 16);
+        token = strtok(NULL, ":");
+    }
+
+    free(mac_copy); 
 }
 
 static const char *TAG = "eth";
@@ -141,15 +160,9 @@ void app_main()
 {
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-
 	ethernetParamConfig(&AppConfig);
-
-
     ethernet_init();
-
 	setStaticIP(&AppConfig);
-
-
 
     while (true) {
         vTaskDelay(pdMS_TO_TICKS(1000)); 

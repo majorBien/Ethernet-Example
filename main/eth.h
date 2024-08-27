@@ -1,3 +1,10 @@
+/*
+ * eth.h
+ *
+ *  Created on: 27 sie 2024
+ *      Author: Dell
+ */
+
 
 
 #include "freertos/FreeRTOS.h"
@@ -22,7 +29,7 @@
 #define ETH_AP_NETMASK				"255.255.255.0"		// AP netmask
 #define ETH_AP_DNS1                 "8.8.8.8"           // AP dns1
 #define ETH_AP_DNS2					"8.8.4.4"			// AP dns2
-#define ETH_AP_MAC_ADDRESS			"1.2.3.4.5.6"       // AP mac 
+#define ETH_AP_MAC_ADDRESS			"12:2:8:4:7:6"       // AP mac 
 #define ETH_APP_DHCP				0					// DHCP on/off
 
 typedef struct {
