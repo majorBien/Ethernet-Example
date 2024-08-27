@@ -1,44 +1,12 @@
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "esp_event.h"
-#include "esp_netif.h"
-#include "esp_eth.h"
-#include "lwip/dns.h"
-#include "esp_log.h"
-#include <stdint.h>
-#include <string.h>
-#include <stdio.h>
-#include "driver/gpio.h"
-#include "esp_eth.h" 
-    
 
-typedef struct {
-    uint8_t v[4]; 
-} IP_ADDR;
+#include "eth.h"
 
+#define PIN_PHY_CLK_EN 2
 
-typedef struct {
-    IP_ADDR ip;
-    IP_ADDR netmask;
-    IP_ADDR gw;
-    IP_ADDR dns1;
-    IP_ADDR dns2;
-    uint8_t dhcp;
-} CFG;
-
-
-typedef union _DWORD_VAL {
-    uint32_t Val;
-    uint16_t w[2];
-    uint8_t v[4];
-} DWORD_VAL;
-
-
-CFG AppConfig;
 
 
 void get_eth_mac(uint8_t *mac_addr) {
-    // Dummy implementation, replace with actual MAC address fetching code
+
     mac_addr[0] = 0x01;
     mac_addr[1] = 0x02;
     mac_addr[2] = 0x03;
@@ -47,7 +15,6 @@ void get_eth_mac(uint8_t *mac_addr) {
     mac_addr[5] = 0x06;
 }
 
-#define PIN_PHY_CLK_EN 2
 static const char *TAG = "eth";
 
 static esp_netif_t *eth_netif = NULL;
@@ -133,61 +100,55 @@ void ethernet_init(void) {
     ESP_ERROR_CHECK(esp_eth_start(eth_handle));
 }
 
+void setIPAddressFromString(IP_ADDR *ip, const char *ipStr) {
+    inet_aton(ipStr, (struct in_addr *)ip->v);
+}
+
+
+void ethernetParamConfig(CFG *config)
+{
+    setIPAddressFromString(&config->ip, ETH_AP_IP);
+    setIPAddressFromString(&config->netmask, ETH_AP_NETMASK);
+    setIPAddressFromString(&config->gw, ETH_AP_GATEWAY);
+    setIPAddressFromString(&config->dns1, ETH_AP_DNS1);
+    setIPAddressFromString(&config->dns2, ETH_AP_DNS2);
+    config->dhcp = ETH_APP_DHCP; 
+}
+
+void setStaticIP(CFG * config)
+{
+    if (config->dhcp == 0) {
+        esp_netif_ip_info_t ip_info;
+        ip_info.ip.addr = htonl((config->ip.v[0] << 24) | (config->ip.v[1] << 16) | (config->ip.v[2] << 8) | config->ip.v[3]);
+        ip_info.netmask.addr = htonl((config->netmask.v[0] << 24) | (config->netmask.v[1] << 16) | (config->netmask.v[2] << 8) | config->netmask.v[3]);
+        ip_info.gw.addr = htonl((config->gw.v[0] << 24) | (config->gw.v[1] << 16) | (config->gw.v[2] << 8) | config->gw.v[3]);
+
+        ESP_ERROR_CHECK(esp_netif_dhcpc_stop(eth_netif)); 
+        ESP_ERROR_CHECK(esp_netif_set_ip_info(eth_netif, &ip_info));
+
+        ip_addr_t dns1, dns2;
+        dns1.u_addr.ip4.addr = (config->dns1.v[0] << 24) | (config->dns1.v[1] << 16) | (config->dns1.v[2] << 8) | config->dns1.v[3];
+        dns2.u_addr.ip4.addr = (config->dns2.v[0] << 24) | (config->dns2.v[1] << 16) | (config->dns2.v[2] << 8) | config->dns2.v[3];
+
+        dns_setserver(0, &dns1);
+        dns_setserver(1, &dns2);
+    }
+
+}
+
 
 void app_main()
 {
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-
-    AppConfig.ip.v[0] = 192;
-    AppConfig.ip.v[1] = 168;
-    AppConfig.ip.v[2] = 1;
-    AppConfig.ip.v[3] = 100;
-
-    AppConfig.netmask.v[0] = 255;
-    AppConfig.netmask.v[1] = 255;
-    AppConfig.netmask.v[2] = 255;
-    AppConfig.netmask.v[3] = 0;
-
-    AppConfig.gw.v[0] = 192;
-    AppConfig.gw.v[1] = 168;
-    AppConfig.gw.v[2] = 1;
-    AppConfig.gw.v[3] = 1;
-
-    AppConfig.dns1.v[0] = 8;
-    AppConfig.dns1.v[1] = 8;
-    AppConfig.dns1.v[2] = 8;
-    AppConfig.dns1.v[3] = 8;
-
-    AppConfig.dns2.v[0] = 8;
-    AppConfig.dns2.v[1] = 8;
-    AppConfig.dns2.v[2] = 4;
-    AppConfig.dns2.v[3] = 4;
-
-    AppConfig.dhcp = 0; 
+	ethernetParamConfig(&AppConfig);
 
 
     ethernet_init();
 
+	setStaticIP(&AppConfig);
 
-    if (AppConfig.dhcp == 0) {
-		esp_netif_ip_info_t ip_info;
-		ip_info.ip.addr = htonl((AppConfig.ip.v[0] << 24) | (AppConfig.ip.v[1] << 16) | (AppConfig.ip.v[2] << 8) | AppConfig.ip.v[3]);
-		ip_info.netmask.addr = htonl((AppConfig.netmask.v[0] << 24) | (AppConfig.netmask.v[1] << 16) | (AppConfig.netmask.v[2] << 8) | AppConfig.netmask.v[3]);
-		ip_info.gw.addr = htonl((AppConfig.gw.v[0] << 24) | (AppConfig.gw.v[1] << 16) | (AppConfig.gw.v[2] << 8) | AppConfig.gw.v[3]);
-
-
-        ESP_ERROR_CHECK(esp_netif_dhcpc_stop(eth_netif)); 
-        ESP_ERROR_CHECK(esp_netif_set_ip_info(eth_netif, &ip_info));
-
-        ip_addr_t dns1, dns2;
-        dns1.u_addr.ip4.addr = (AppConfig.dns1.v[0] << 24) | (AppConfig.dns1.v[1] << 16) | (AppConfig.dns1.v[2] << 8) | AppConfig.dns1.v[3];
-        dns2.u_addr.ip4.addr = (AppConfig.dns2.v[0] << 24) | (AppConfig.dns2.v[1] << 16) | (AppConfig.dns2.v[2] << 8) | AppConfig.dns2.v[3];
-
-        dns_setserver(0, &dns1);
-        dns_setserver(1, &dns2);
-    }
 
 
     while (true) {
