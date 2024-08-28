@@ -1,7 +1,7 @@
 {
     "version":            "1",
     "project_name":       "ethernet_basic",
-    "project_version":    "5cbe04d-dirty",
+    "project_version":    "ccfdb83-dirty",
     "project_path":       "C:/Users/Dell/eclipse-workspace/ethernetExample",
     "idf_path":           "C:/Espressif/frameworks/esp-idf-v5.0.4",
     "build_dir":          "C:/Users/Dell/eclipse-workspace/ethernetExample/build",
@@ -744,7 +744,7 @@
             "managed_reqs": [],
             "managed_priv_reqs": [],
             "file": "C:/Users/Dell/eclipse-workspace/ethernetExample/build/esp-idf/main/libmain.a",
-            "sources": [ "C:/Users/Dell/eclipse-workspace/ethernetExample/main/eth.c" ],
+            "sources": [ "C:/Users/Dell/eclipse-workspace/ethernetExample/main/main.c", "C:/Users/Dell/eclipse-workspace/ethernetExample/main/eth.c" ],
             "include_dirs": [ "." ]
         },
         "mbedtls": {

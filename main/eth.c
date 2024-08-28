@@ -2,7 +2,7 @@
  * eth.c
  *
  *  Created on: 27 sie 2024
- *      Author: Dell
+ *      Author: majorBien
  */
 
 
@@ -13,26 +13,6 @@
 
 
 
-void get_eth_mac(uint8_t *mac_addr) {
-
-    const char *mac_str = ETH_AP_MAC_ADDRESS;
-    
- 
-    char *token;
-    char *mac_copy = strdup(mac_str); 
-    
-
-    token = strtok(mac_copy, ":");
-    int index = 0;
-
-    while (token != NULL && index < 6) {
-      
-        mac_addr[index++] = (uint8_t) strtol(token, NULL, 16);
-        token = strtok(NULL, ":");
-    }
-
-    free(mac_copy); 
-}
 
 static const char *TAG = "eth";
 
@@ -81,6 +61,26 @@ static void got_ip_event_handler(void *arg, esp_event_base_t event_base, int32_t
 }
 
 
+void get_eth_mac(uint8_t *mac_addr) {
+
+    const char *mac_str = ETH_AP_MAC_ADDRESS;
+    
+ 
+    char *token;
+    char *mac_copy = strdup(mac_str); 
+    
+
+    token = strtok(mac_copy, ":");
+    int index = 0;
+
+    while (token != NULL && index < 6) {
+      
+        mac_addr[index++] = (uint8_t) strtol(token, NULL, 16);
+        token = strtok(NULL, ":");
+    }
+
+    free(mac_copy); 
+}
 
 void ethernet_init(void) {
 
@@ -119,19 +119,19 @@ void ethernet_init(void) {
     ESP_ERROR_CHECK(esp_eth_start(eth_handle));
 }
 
-void setIPAddressFromString(IP_ADDR *ip, const char *ipStr) {
+void getIPAddressFromString(IP_ADDR *ip, const char *ipStr) {
     inet_aton(ipStr, (struct in_addr *)ip->v);
 }
 
 
 void ethernetParamConfig(CFG *config)
 {
-    setIPAddressFromString(&config->ip, ETH_AP_IP);
-    setIPAddressFromString(&config->netmask, ETH_AP_NETMASK);
-    setIPAddressFromString(&config->gw, ETH_AP_GATEWAY);
-    setIPAddressFromString(&config->dns1, ETH_AP_DNS1);
-    setIPAddressFromString(&config->dns2, ETH_AP_DNS2);
-    config->dhcp = ETH_APP_DHCP; 
+    getIPAddressFromString(&config->ip, ETH_AP_IP);
+    getIPAddressFromString(&config->netmask, ETH_AP_NETMASK);
+    getIPAddressFromString(&config->gw, ETH_AP_GATEWAY);
+    getIPAddressFromString(&config->dns1, ETH_AP_DNS1);
+    getIPAddressFromString(&config->dns2, ETH_AP_DNS2);
+    config->dhcp = ETH_AP_DHCP; 
 }
 
 void setStaticIP(CFG * config)
@@ -155,10 +155,9 @@ void setStaticIP(CFG * config)
 
 }
 
-
-void app_main()
+static void eth_app_task(void *pvParameters)
 {
-    ESP_ERROR_CHECK(esp_netif_init());
+	ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 	ethernetParamConfig(&AppConfig);
     ethernet_init();
@@ -168,5 +167,13 @@ void app_main()
         vTaskDelay(pdMS_TO_TICKS(1000)); 
     }
 }
+
+void ethAppStart(void)
+{
+	
+	xTaskCreatePinnedToCore(&eth_app_task, "eth_app_task", ETH_APP_TASK_STACK_SIZE, NULL, ETH_APP_TASK_PRIORITY, NULL, ETH_APP_TASK_CORE_ID);
+}
+
+
 
 
