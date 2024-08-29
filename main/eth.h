@@ -29,7 +29,7 @@
 #define ETH_AP_DNS1                 "8.8.8.8"           // AP dns1
 #define ETH_AP_DNS2					"8.8.4.4"			// AP dns2
 #define ETH_AP_MAC_ADDRESS			"12:2:8:4:7:6"       // AP mac 
-#define ETH_AP_DHCP				0					// DHCP on/off
+#define ETH_AP_DHCP					0					// DHCP on/off
 
 typedef struct {
     uint8_t v[4]; 

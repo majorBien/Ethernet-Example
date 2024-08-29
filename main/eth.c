@@ -30,7 +30,6 @@ static void eth_event_handler(void *arg, esp_event_base_t event_base, int32_t ev
                      mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
 
 
-            memcpy((void*)AppConfig.gw.v, (void*)mac_addr, 6); 
 
             break;
         case ETHERNET_EVENT_DISCONNECTED:
